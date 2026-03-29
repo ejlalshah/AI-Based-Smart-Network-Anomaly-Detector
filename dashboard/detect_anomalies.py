@@ -1,24 +1,30 @@
-src_ip,packet_count,avg_packet_size,max_packet_size,protocol_count
-104.18.0.181,1,54.0,54,1
-104.18.1.181,2,54.0,54,1
-104.18.32.47,1,66.0,66,1
-104.18.36.252,1,66.0,66,1
-104.18.39.21,15,79.0,139,1
-130.35.128.168,1,89.0,89,1
-135.225.242.64,1,93.0,93,1
-142.250.201.228,19,464.1578947368421,1292,1
-146.112.41.2,24,457.625,1466,1
-172.64.151.4,18,102.94444444444444,193,1
-172.64.155.209,32,162.4375,1096,1
-192.168.70.1,4,174.5,175,1
-192.168.70.21,5,115.8,119,1
-192.168.70.22,47,168.6595744680851,698,1
-192.168.70.27,113,361.87610619469024,1466,2
-192.168.70.95,1,115.0,115,1
-20.42.73.31,2,60.0,66,1
-34.139.124.58,5,66.6,93,1
-34.8.7.18,1,66.0,66,1
-35.244.251.182,2,60.0,66,1
-52.41.118.30,4,66.0,78,1
-66.102.1.188,3,66.0,66,1
-94.206.5.97,2,66.0,78,1
+import pandas as pd
+import joblib
+import os
+
+FEATURES_FILE = "data/features.csv"
+MODEL_FILE = "ml/isolation_forest_model.pkl"
+SCALER_FILE = "ml/scaler.pkl"
+OUTPUT_FILE = "data/anomalies.csv"
+
+if not os.path.exists(FEATURES_FILE):
+    raise FileNotFoundError("features.csv missing.")
+
+df = pd.read_csv(FEATURES_FILE)
+
+model = joblib.load(MODEL_FILE)
+scaler = joblib.load(SCALER_FILE)
+
+X = df[
+    ["packet_count", "avg_packet_size", "max_packet_size", "protocol_count"]
+]
+
+X_scaled = scaler.transform(X)
+
+df["anomaly"] = model.predict(X_scaled)
+df["anomaly_score"] = model.decision_function(X_scaled)
+
+os.makedirs("data", exist_ok=True)
+df.to_csv(OUTPUT_FILE, index=False)
+
+print("Anomaly detection complete.")
